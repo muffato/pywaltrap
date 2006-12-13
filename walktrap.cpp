@@ -28,15 +28,17 @@
 #include "graph.h"
 #include "communities.h"
 #include <ctime>
+#include <map>
 #include <set>
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 
 using namespace std;
 
 void info() {
-  cerr << "WalkTrap v0.2 -- Finds community structure of networks using random walks." << endl;
+  cerr << "WalkTrap v0.3 -- Finds community structure of networks using random walks." << endl;
   cerr << "Copyright (C) 2004 Pascal Pons." << endl << endl;
 }
 
@@ -50,8 +52,8 @@ void help(char* prog_name) {
   cerr << "-s\t(silent) do not display the progress." << endl;
   cerr << "-tx\tset the length of random walks to x (default = 4)." << endl;
   cerr << "-dx\tset to x the detail level of the output (0 <= x <= 4, default = 1)." << endl;
-  cerr << "-px\tprint the partition with x communities" << endl;
-  cerr << "-b\tprint the best modularity partition" << endl;
+//  cerr << "-px\tprint the partition with x communities" << endl;
+//  cerr << "-b\tprint the best modularity partition" << endl;
   cerr << "-mx\tlimit the memory usage to x MB" << endl;
   cerr << "-h\tprint this help" << endl << endl;
   cerr << "see readme.txt for more details" << endl;
@@ -60,17 +62,20 @@ void help(char* prog_name) {
 
 
 
-int main(int argc, char** argv)
-{  
+int main(int argc, char** argv) {  
   int length = 4;
-  int details = 2;
+  int detail = 2;
   long max_memory = -1;
   bool silent = false;
-  bool print_best_modularity = false;
+
+  int quality_function = 2;	// 1 = sigma, 2 = modularity, 3 = perf
+  int nb_best_partitions = 0;
+  
   char* output_file = 0;
   char* input_file = 0;
   char* index_file = 0;
-  set<int> print_partition;
+
+  vector<float> print_partition;
 
   for (int i = 1; i < argc; i++) 
     if(argv[i][0] == '-') {
@@ -92,16 +97,26 @@ int main(int argc, char** argv)
 	    }
 	  help(argv[0]);
 	case 'd':
-	  details = atoi(argv[i]+2);
-	  if((argv[i][2] != '0' || argv[i][3] != 0) && details <= 0) help(argv[0]);
+	  detail = atoi(argv[i]+2);
+	  if((argv[i][2] != '0' || argv[i][3] != 0) && detail <= 0) help(argv[0]);
+	  break;
+	case 'q':
+	  switch(argv[i][2]) {
+	    case 's': quality_function = 1; break;
+	    case 'm': quality_function = 2; break;
+	    case 'p': quality_function = 3; break;
+	    default: help(argv[0]);    
+	  }
 	  break;
 	case 'p':
-	  if (atoi(argv[i]+2) <= 0) help(argv[0]);
-	  print_partition.insert(atoi(argv[i]+2));
+	  if(atof(argv[i]+2) <= 0 || atof(argv[i]+2) >= 1) help(argv[0]);
+	  print_partition.push_back(atof(argv[i]+2));
 	  break;
 	case 'b':
-	  print_best_modularity = true;
-	  break;	  
+	  if(argv[i][2] == 0) nb_best_partitions = 1;
+	  else nb_best_partitions = atoi(argv[i]+2);
+	  if (nb_best_partitions == 0) help(argv[0]);
+	  break;
 	case 'm':
 	  max_memory = atol(argv[i]+2)*1024*1024;
 	  if (max_memory <= 0) help(argv[0]);
@@ -158,7 +173,7 @@ int main(int argc, char** argv)
       if(!silent) cerr << "index sucessfuly loaded" << endl << endl;
   }
   
-  Communities C(G, length, silent, details, max_memory);  
+  Communities C(G, length, silent, max_memory);  
 
   if(!silent) cerr << "merging the communities:";
 
@@ -166,14 +181,40 @@ int main(int argc, char** argv)
     C.merge_nearest_communities();
   }
 
-  if(!silent) cerr << endl;
+  if(!silent) cerr << endl << endl << "computing hierarchy and scale factor relevance." << endl;
+  
+  C.compute_hierarchy(quality_function);
+  C.print_hierarchy(detail);
+  
+  map<float,float> M;
+  C.find_best_partition(0.5, M, detail);
+  if (detail >= 2) {
+    cout << endl << "Interesting Scale Factor:" << endl; 
+    cout << "Alpha\tRelevance" << endl;
+    for(map<float,float>::reverse_iterator it = M.rbegin(); it != M.rend(); ++it)
+      cout << setprecision(5) << it->second << "\t" << setprecision(5) << it->first << endl;
+  }
 
-  if(print_best_modularity)
-    C.print_best_modularity_partition();
-  
-  for(set<int>::iterator it = print_partition.begin(); it != print_partition.end(); ++it)
-    if(*it <= G->nb_vertices) C.print_partition(*it);
-  
+  int c = 0;
+  for(map<float,float>::reverse_iterator it = M.rbegin(); it != M.rend(); ++it) {
+    if(++c > nb_best_partitions) break;
+    print_partition.push_back(it->second);
+  }
+
+/*  map<float,float>::reverse_iterator it = M.rbegin();
+  double alpha1 = it->second;
+  double alpha2 = it->second;
+  ++it;
+  if (it != M.rend()) alpha2 = it->second;
+  if (alpha1 > alpha2) {double tmp = alpha1; alpha1 = alpha2; alpha2 = tmp;}
+  C.print_partition(alpha1);
+  cout << alpha1 << endl;
+  C.print_partition(alpha2);
+  cout << alpha2 << endl;*/
+
+  for(unsigned int i = 0; i < print_partition.size(); ++i)
+    C.print_partition(print_partition[i]);
+    
   if(!silent) cerr << endl << "computation successfully terminated in " << double(clock() - begin) / double(CLOCKS_PER_SEC) << "s" << endl;
   delete G;
   if(output_file) fclose(stdout);

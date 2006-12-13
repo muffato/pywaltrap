@@ -28,7 +28,10 @@
 #include "communities.h"
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <cmath>
+
+//#include <vector>
 
 int Probabilities::length = 0;
 Communities* Probabilities::C = 0;
@@ -340,12 +343,15 @@ Community::~Community() {
 }
 
 
-Communities::Communities(Graph* graph, int random_walks_length, bool s, int d, long m) {
+Communities::Communities(Graph* graph, int random_walks_length, bool s, long m) {
   silent = s;
-  details = d;
   max_memory = m;
   memory_used = 0;
   G = graph;
+  alpha_min = 0;
+  alpha_max = 0;
+  sub_communities = 0;
+  sorted_alpha_min = 0;
   
   Probabilities::C = this;
   Probabilities::length = random_walks_length;
@@ -423,9 +429,6 @@ Communities::Communities(Graph* graph, int random_walks_length, bool s, int d, l
   
   if(!silent) cerr << endl << endl;
 
-  if (details >= 2) cout << "Partition 0" << " (" << G->nb_vertices << " communities)" << endl;
-  if (details >= 2) for(int i = 0; i < G->nb_vertices; i++) print_community(i);
-  if (details >= 2) cout << endl;
 }
 
 Communities::~Communities() {
@@ -433,6 +436,14 @@ Communities::~Communities() {
   delete[] communities;
   delete H;
   if(min_delta_sigma) delete min_delta_sigma;
+
+  if(alpha_min) delete[] alpha_min;
+  if(alpha_max) delete[] alpha_max;
+  if(sub_communities) {
+    for(int i = 0; i < nb_communities; i++)
+      if(sub_communities[i]) delete[] sub_communities[i];
+    delete[] sub_communities;
+  }
   
   delete[] Probabilities::tmp_vector1;
   delete[] Probabilities::tmp_vector2;
@@ -764,20 +775,6 @@ double Communities::merge_nearest_communities() {
   merge_communities(N);
   if(max_memory != -1) manage_memory();
 
-  if(details >= 2) cout << "Partition " << nb_communities - G->nb_vertices << " (" << 2*G->nb_vertices - nb_communities << " communities)" << endl;
-  if(details >= 2) cout << "community " << N->community1 << " + community " << N->community2 << " --> community " << nb_communities - 1 << endl;
-
-  if(details >= 3) {
-  float Q = 0.;
-  for(int i = 0; i < nb_communities; i++)
-    if(communities[i].sub_community_of == 0) 
-      Q += (communities[i].internal_weight - communities[i].total_weight*communities[i].total_weight/G->total_weight)/G->total_weight;
-  cout << "Q = " << Q << "  #  " << "delta_sigma = " << d << endl;  
-  }
-
-  if(details == 4) print_community(nb_communities-1);
-  if(details >= 5) print_partition(2*G->nb_vertices - nb_communities); 
-  if(details >= 2) cout << endl;
   delete N;
 
   if(!silent) {
@@ -802,7 +799,7 @@ double Communities::compute_delta_sigma(int community1, int community2) {
   return communities[community1].P->compute_distance(communities[community2].P)*double(communities[community1].size)*double(communities[community2].size)/double(communities[community1].size + communities[community2].size);
 }
 
-
+/*
 void Communities::print_community(int c) {
   cout << "community " << c << " = {";
   for(int m = communities[c].first_member; m != members[communities[c].last_member]; m = members[m]) {
@@ -811,54 +808,302 @@ void Communities::print_community(int c) {
     if(members[m] != members[communities[c].last_member]) cout << ", ";
   }
   cout << "}" << endl;
-}
+}*/
 
-void Communities::print_state() {
-  cout << "number of communities : " << nb_active_communities << endl;
-  for(int c = 0; c < nb_communities; c++)
-    if(communities[c].sub_community_of == 0) 
-      print_community(c);
-}
 
-void Communities::print_partition(int nb_remaining_commities) {
-  int last_community = 2*G->nb_vertices - nb_remaining_commities - 1;
-  cout << "Partition " << G->nb_vertices - nb_remaining_commities << " (" << nb_remaining_commities << " communities)" << endl;
-  for(int c = 0; c <= last_community; c++)
-    if((communities[c].sub_community_of == 0) || (communities[c].sub_community_of > last_community))
-      print_community(c);
-}
-
-float Communities::find_best_modularity(int community, bool* max_modularity) {
-  float Q = (communities[community].internal_weight - communities[community].total_weight*communities[community].total_weight/G->total_weight)/G->total_weight;
-  if(communities[community].sub_communities[0] == -1) {
-    max_modularity[community] = true;
-    return Q;
-  }
-  float Q2 = find_best_modularity(communities[community].sub_communities[0], max_modularity) + find_best_modularity(communities[community].sub_communities[1], max_modularity);
-  if(Q2 > Q) {
-    max_modularity[community] = false;
-    return Q2;
-  }
-  else {
-    max_modularity[community] = true;
-    return Q;
+void Communities::print_community(int c) {
+  for(int m = communities[c].first_member; m != members[communities[c].last_member]; m = members[m]) {
+    if(G->index) cout << G->index[m];
+    else cout << m;
+    cout << " " << c << endl;
   }
 }
 
-void Communities::print_best_modularity_partition() {
-  bool* max_modularity = new bool[nb_communities];
-  float Q = find_best_modularity(nb_communities-1, max_modularity);
-  cout << "Maximal modularity Q = " << Q << " for partition :" << endl;
-  print_best_modularity_partition(nb_communities-1, max_modularity);
-  delete[] max_modularity;
+void Communities::compute_hierarchy(int mode) {
+  Hierarchy* hierarchy = new Hierarchy[G->nb_vertices];
+  compute_hierarchy(nb_communities - 1, hierarchy, mode);
+  
+  vector<int> list;
+  bool* B = new bool[nb_communities];
+  if(alpha_min) delete[] alpha_min;
+  alpha_min = new float[nb_communities];
+  if(alpha_max) delete[] alpha_max;
+  alpha_max = new float[nb_communities];
+  if(sub_communities) {
+    for(int i = 0; i < nb_communities; i++)
+      if(sub_communities[i]) delete[] sub_communities[i];
+    delete[] sub_communities;
+  }
+  sub_communities = new int*[nb_communities];
+  if(sorted_alpha_min) delete[] sorted_alpha_min;
+  sorted_alpha_min = new int[nb_communities+1];
+  
+  for(int i = 0; i < G->nb_vertices; i++) {
+    B[i] = true;
+    alpha_min[i] = hierarchy[0].alpha;
+    alpha_max[i] = 0.;
+    sub_communities[i] = 0;
+    sorted_alpha_min[i] = i;
+  }
+  for(int i = G->nb_vertices; i < nb_communities; i++) {
+    B[i] = false;
+    alpha_min[i] = 0.;
+    alpha_max[i] = 0.;
+    sub_communities[i] = 0;
+    sorted_alpha_min[i] = -1;		    // -1 will be used to mark the end of the vector
+  }
+  sorted_alpha_min[nb_communities] = -1;    // -1 will be used to mark the end of the vector
+
+  int compteur = G->nb_vertices;
+  for(int i = 0; hierarchy[i].alpha != 1.; i++) {
+    int c = hierarchy[i+1].community;
+    alpha_min[c] = hierarchy[i].alpha;
+    sorted_alpha_min[compteur++] = c;
+    list.clear();
+    find_sub_communities(c, B, list);
+    sub_communities[c] = new int[list.size() + 1];
+    sub_communities[c][0] = list.size();
+    for(unsigned int j = 0; j < list.size(); j++) {
+      sub_communities[c][j+1] = list[j];
+      alpha_max[list[j]] = hierarchy[i].alpha;
+    }
+    B[c] = true;
+  }
+  alpha_max[nb_communities - 1] = alpha_min[nb_communities - 1];    // the largest community = G
+
+  delete[] B;
+  delete[] hierarchy;
 }
 
-void Communities::print_best_modularity_partition(int community, bool* max_modularity) {
-  if(max_modularity[community]) 
-    print_community(community);
-  else {
-    print_best_modularity_partition(communities[community].sub_communities[0], max_modularity);
-    print_best_modularity_partition(communities[community].sub_communities[1], max_modularity);
+void Communities::find_sub_communities(int community, bool* B, vector<int>& list) {
+  if(B[community]) {
+    list.push_back(community);
+    return;
+  }
+  find_sub_communities(communities[community].sub_communities[0], B, list);
+  find_sub_communities(communities[community].sub_communities[1], B, list);
+}
+
+
+void Communities::compute_hierarchy(int community, Hierarchy* hierarchy, int mode) {
+  if(communities[community].size == 1) {   
+    hierarchy[0].alpha = 1.;
+    switch(mode) {
+      case 1:	// sigma
+	hierarchy[0].s = -communities[community].sigma/communities[nb_communities-1].sigma;
+	hierarchy[0].g = -1./float(G->nb_vertices);
+//	hierarchy[0].g = communities[community].internal_weight/G->total_weight;
+	break;
+      case 2:	// modularity
+	hierarchy[0].s = -communities[community].total_weight*communities[community].total_weight/G->total_weight;
+	hierarchy[0].g = communities[community].internal_weight;
+	break;
+      case 3:	// performance
+	hierarchy[0].s = communities[community].size * (G->nb_vertices - communities[community].size) * G->total_weight/G->nb_edges - (communities[community].total_weight - communities[community].internal_weight);
+	hierarchy[0].g = 2*communities[community].internal_weight;
+	break;
+    }
+    hierarchy[0].community = -1;
+    return;
+  }
+
+  Hierarchy* tmpH1 = new Hierarchy[communities[communities[community].sub_communities[0]].size];
+  Hierarchy* tmpH2 = new Hierarchy[communities[communities[community].sub_communities[1]].size];
+  
+  compute_hierarchy(communities[community].sub_communities[0], tmpH1, mode);
+  compute_hierarchy(communities[community].sub_communities[1], tmpH2, mode);
+
+  int a = 0;
+  int b = 0;
+  int current_community = -1;
+
+  while((tmpH1[a].alpha != 1.) || (tmpH2[b].alpha != 1.)) {
+    if(tmpH1[a].alpha < tmpH2[b].alpha) {
+      hierarchy[a + b].alpha = tmpH1[a].alpha;
+      hierarchy[a + b].s = tmpH1[a].s + tmpH2[b].s;
+      hierarchy[a + b].g = tmpH1[a].g + tmpH2[b].g;
+      hierarchy[a + b].community = current_community;
+      current_community = tmpH1[++a].community;
+    }
+    else {
+      hierarchy[a + b].alpha = tmpH2[b].alpha;
+      hierarchy[a + b].s = tmpH1[a].s + tmpH2[b].s;
+      hierarchy[a + b].g = tmpH1[a].g + tmpH2[b].g;
+      hierarchy[a + b].community = current_community;
+      current_community = tmpH2[++b].community;
+    }
+  }
+  
+  hierarchy[a + b].s = tmpH1[a].s + tmpH2[b].s;
+  hierarchy[a + b].g = tmpH1[a].g + tmpH2[b].g;
+  hierarchy[a + b].community = current_community;
+
+  int c = a + b;
+  float ds = 0;
+  float dg = 0;
+  while(true) {
+    switch (mode) {
+      case 1:
+	ds = hierarchy[c].s - (-communities[community].sigma/communities[nb_communities-1].sigma);
+	dg = -1./float(G->nb_vertices) - hierarchy[c].g;
+//	dg = communities[community].internal_weight/G->total_weight - hierarchy[c].g;
+	break;
+      case 2:
+	ds = hierarchy[c].s - (-communities[community].total_weight*communities[community].total_weight/G->total_weight);
+	dg = communities[community].internal_weight - hierarchy[c].g;
+	break;
+      case 3:
+	ds = hierarchy[c].s - (communities[community].size * (G->nb_vertices - communities[community].size) * G->total_weight/G->nb_edges - (communities[community].total_weight - communities[community].internal_weight));
+	dg = 2*communities[community].internal_weight - hierarchy[c].g;
+	break;
+    }
+    if ((c == 0) || (ds/(dg+ds) > hierarchy[c-1].alpha)) break;
+    c--;
+  }
+  
+  hierarchy[c].alpha = ds/(dg+ds);
+  hierarchy[c + 1].alpha = 1.;
+
+  switch (mode) {
+    case 1:
+      hierarchy[c + 1].s = -communities[community].sigma/communities[nb_communities-1].sigma;
+    hierarchy[c + 1].g = -1./float(G->nb_vertices);
+//      hierarchy[c + 1].g = communities[community].internal_weight/G->total_weight;
+      break;
+    case 2:
+      hierarchy[c + 1].s = -communities[community].total_weight*communities[community].total_weight/G->total_weight;
+      hierarchy[c + 1].g = communities[community].internal_weight;
+      break;
+    case 3:
+      hierarchy[c + 1].s = communities[community].size * (G->nb_vertices - communities[community].size) * G->total_weight/G->nb_edges - (communities[community].total_weight - communities[community].internal_weight);
+      hierarchy[c + 1].g = 2*communities[community].internal_weight;
+      break;
+  }
+
+  hierarchy[c + 1].community = community;
+
+  delete[] tmpH1;
+  delete[] tmpH2;  
+}
+
+void Communities::print_hierarchy(int detail) {
+  if(!alpha_min) return;
+
+  if(detail >= 1) {
+    for(int i = G->nb_vertices; sorted_alpha_min[i] != -1; i++) {
+      int c = sorted_alpha_min[i];
+      cout << alpha_min[c] << " : ";
+      for(int j = 1; j < sub_communities[c][0]; j++)
+	cout << sub_communities[c][j] << " + ";
+      cout << sub_communities[c][sub_communities[c][0]] << " --> " << c << endl;
+      if(detail >= 4) print_community(c);
+    }
   }
 }
+
+void Communities::print_partition(float alpha) {
+  if(!alpha_min) return;
+//  cout << endl << "Partition for scale factor alpha = " << alpha << " :" << endl;
+
+  for(int i = 0; i < nb_communities; i++)
+    if(alpha_min[i] <= alpha && alpha_max[i] > alpha)
+      print_community(i);
+//  cout << endl;
+}
+
+void Communities::find_best_partition(float ratio, map<float, float>& M, int detail) {
+  if(!alpha_min) return;
+
+  float last_alpha = 0.;
+  double r = 0.;
+  double d1 = 0.;
+  double d2 = 0.;
+
+  int s = 200;		// samples : 0 .. 1 by steps 1/s
+  int w = int(0.05*s);	// window size for local maxima
+
+  float* A = new float[s];
+  float* Hq = new float[s];
+  for(int i = 0 ; i < s; i++) {
+    Hq[i] = 0.;
+    A[i] = (float(i) + 0.5)/float(s);
+  }
+
+  for(int i = 0; sorted_alpha_min[i] != -1; i++) {
+    int c = sorted_alpha_min[i];
+
+    if(alpha_min[c] > last_alpha) {
+      if(r + d1*last_alpha + d2 * last_alpha * last_alpha > Hq[int(last_alpha * s)]) {
+	A[int(last_alpha * s)] = last_alpha;
+	Hq[int(last_alpha * s)] = r + d1*last_alpha + d2 * last_alpha * last_alpha;
+      }
+      if(d2 != 0.) {
+	double alpha_extremum = -d1/(2.*d2);
+	if (last_alpha < alpha_extremum && alpha_extremum < alpha_min[c]) 
+	  if(r + d1*alpha_extremum + d2 * alpha_extremum * alpha_extremum > Hq[int(alpha_extremum * s)]) {
+	    A[int(alpha_extremum * s)] = alpha_extremum;
+	    Hq[int(alpha_extremum * s)] = r + d1*alpha_extremum + d2 * alpha_extremum * alpha_extremum;
+	}
+      }
+
+      for(int alpha_interm = int(last_alpha * s) + 1; alpha_interm < int(alpha_min[c] * s); alpha_interm++)
+	  if(r + d1*(float(alpha_interm) + 0.5)/s + d2 * (float(alpha_interm) + 0.5)/s * (float(alpha_interm) + 0.5)/s > Hq[alpha_interm]) {
+	    A[alpha_interm] = (float(alpha_interm) + 0.5)/s;
+	    Hq[alpha_interm] = r + d1*(float(alpha_interm) + 0.5)/s + d2 * (float(alpha_interm) + 0.5)/s * (float(alpha_interm) + 0.5)/s;
+	  }
+      
+      if(r + d1*alpha_min[c] + d2 * alpha_min[c] * alpha_min[c] > Hq[int(alpha_min[c] * s)]) {
+	A[int(alpha_min[c] * s)] = alpha_min[c];
+	Hq[int(alpha_min[c] * s)] = r + d1*alpha_min[c] + d2 * alpha_min[c] * alpha_min[c];
+      }
+      last_alpha = alpha_min[c];
+    }
+    
+    if(alpha_min[c] < alpha_max[c]) {
+      r += (alpha_max[c]-alpha_min[c]) * double(communities[c].size)/double(G->nb_vertices) * ratio;
+
+      r -= 4.*(alpha_max[c]*alpha_min[c])/(alpha_max[c]-alpha_min[c]) * double(communities[c].size)/double(G->nb_vertices) * (1 - ratio);
+      d1 += 4.*(alpha_max[c]+alpha_min[c])/(alpha_max[c]-alpha_min[c]) * double(communities[c].size)/double(G->nb_vertices)  * (1 - ratio);
+      d2 -= 4./(alpha_max[c]-alpha_min[c]) * double(communities[c].size)/double(G->nb_vertices)  * (1 - ratio);
+    }
+
+    if(sub_communities[c])
+      for(int j = 1; j <= sub_communities[c][0]; j++) {
+	int c2 = sub_communities[c][j];
+    	if(alpha_min[c2] < alpha_max[c2]) {
+  	  r -= (alpha_max[c2]-alpha_min[c2]) * double(communities[c2].size)/double(G->nb_vertices) * ratio;
+	  
+	  r += 4.*(alpha_max[c2]*alpha_min[c2])/(alpha_max[c2]-alpha_min[c2]) * double(communities[c2].size)/double(G->nb_vertices) * (1 - ratio);
+	  d1 -= 4.*(alpha_max[c2]+alpha_min[c2])/(alpha_max[c2]-alpha_min[c2]) * double(communities[c2].size)/double(G->nb_vertices)  * (1 - ratio);
+	  d2 += 4./(alpha_max[c2]-alpha_min[c2]) * double(communities[c2].size)/double(G->nb_vertices)  * (1 - ratio);
+	}
+      }
+  }
+
+  if (detail >= 3) {
+    cout << endl << "Scale Factor Relevance:" << endl; 
+    cout << "Alpha\tRelevance" << endl; 
+    for(int i = 0; i < s; i++)
+      cout << setprecision(5) << A[i] << "\t" << setprecision(5) << Hq[i] << endl;
+    cout << endl;
+  }
+ 
+  for(int i = 0 ; i < s; i++) {
+    float max_hq = -1.;
+    int a_max = 0;
+    for(int a = min(i+w, s-1); a >= max(i-w, 0); a--)
+      if(Hq[a] > max_hq) {
+	max_hq = Hq[a];
+	a_max = a;
+      }
+    if(a_max == i && Hq[i] != 0.) {
+      M.insert(pair<float,float>(Hq[i], A[i]));
+    }
+  }
+  
+  delete A;
+  delete Hq;
+}
+
+
 

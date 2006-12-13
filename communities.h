@@ -31,6 +31,9 @@
 
 #include "graph.h"
 #include "heap.h"
+#include <vector>
+#include <map>
+
 
 class Communities;
 class Probabilities {
@@ -77,7 +80,7 @@ public:
   float internal_weight;	// sum of the weight of the internal edges
   float total_weight;		// sum of the weight of all the edges of the community (an edge between two communities is a half-edge for each community)
     
-  int sub_communities[2];	// the two sub sommunities, -1 if no sub communities;
+  int sub_communities[2];	// the two sub communities, -1 if no sub communities;
   int sub_community_of;		// number of the community in which this community has been merged
 				// 0 if the community is active
 				// -1 if the community is not used
@@ -97,6 +100,22 @@ private:
   int details;		// between 0 and 3, how much details are printed
   long max_memory;	// size in Byte of maximal memory usage, -1 for no limit
   
+  class Hierarchy {
+    public:
+    float alpha;	// the alpha_max at which the correponding partition disappears (1. = last partition)
+    float s;		// = l in the paper
+    float g;		// = h in the paper
+    int community;	// the last community added (-1 lowest partition)
+  };
+  
+  float* alpha_min;	    // the alpha of creation of the community
+  float* alpha_max;	    // the alpha of destruction of the community
+  int** sub_communities;    // the sub communities in the alpha tree
+  int* sorted_alpha_min;   // the list of the community sorted by alpha_min
+
+  void find_sub_communities(int community, bool* B, vector<int>& list);	// find the sub communities of a community that have been seen.
+  void compute_hierarchy(int current_community, Hierarchy* hierarchy, int mode);	// 
+  
 public:
   
   long memory_used;				    // in bytes
@@ -114,12 +133,7 @@ public:
   int nb_communities;		// number of valid communities 
   int nb_active_communities;	// number of active communities
   
-  float find_best_modularity(int community, bool* max_modularity);
-  void print_best_modularity_partition();
-  void print_best_modularity_partition(int community, bool* max_modularity);
-
-  
-  Communities(Graph* G, int random_walks_length = 3, bool silent = false, int details = 1, long max_memory = -1);    // Constructor
+  Communities(Graph* G, int random_walks_length = 3, bool silent = false, long max_memory = -1);    // Constructor
   ~Communities();					// Destructor
 
 
@@ -135,9 +149,14 @@ public:
 
   void manage_memory();
   
-  void print_state();
-  void print_partition(int nb_remaining_commities);	// print the partition for a given number of communities
-  void print_community(int c);				// print a community  
+  void print_community(int c);				// print a community
+
+  void compute_hierarchy(int mode);			// compute the hiearchical structure in alpha_min alpha_max and sub_communities.
+							// mode = 1 : sigma, mode = 2 : modularity
+  void print_hierarchy(int detail);				// print the whole hierarchy computed
+  void print_partition(float alpha);
+  void find_best_partition(float ratio, map<float,float>& M, int detail);
+  
 };
 
 
