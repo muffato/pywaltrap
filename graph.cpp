@@ -73,14 +73,16 @@ public:
   Edge_list() {
     size = 0;
     size_max = 1024;
-    V1 = new int[1024];
-    V2 = new int[1024];
-    W = new float[1024];
+    //size_max = 89645486;
+    V1 = new int[size_max];
+    V2 = new int[size_max];
+    W = new float[size_max];
   }
   ~Edge_list() {
     if(V1) delete[] V1;
     if(V2) delete[] V2;
     if(W) delete[] W;
+    cerr << "Edge_list deleted" << endl;
   }
 };
 
@@ -166,10 +168,15 @@ istream& operator>>(istream& stream, Graph& G) {
     EL.add(v1, v2, w);
   }
 
+  cerr << "Graph loaded" << endl;
+
   G.nb_vertices = max_vertex + 1; 
+  //G.nb_vertices = 353160;
   G.vertices = new Vertex[G.nb_vertices];
   G.nb_edges = 0;
   G.total_weight = 0.;
+
+  cerr << "Vertex array allocated" << endl;
 
   for(int i = 0; i < EL.size; i++) {
       G.vertices[EL.V1[i]].degree++;
@@ -179,6 +186,8 @@ istream& operator>>(istream& stream, Graph& G) {
       G.nb_edges++;
       G.total_weight += EL.W[i];
     }
+
+  cerr << "Step 1" << endl;
 
   for(int i = 0; i < G.nb_vertices; i++) {
     if(G.vertices[i].degree == 0) {
@@ -192,6 +201,8 @@ istream& operator>>(istream& stream, Graph& G) {
     G.vertices[i].degree = 1;
   }
  
+  cerr << "Step 2" << endl;
+
   for(int i = 0; i < EL.size; i++) {
     G.vertices[EL.V1[i]].edges[G.vertices[EL.V1[i]].degree].neighbor = EL.V2[i];
     G.vertices[EL.V1[i]].edges[G.vertices[EL.V1[i]].degree].weight = EL.W[i];
@@ -201,6 +212,8 @@ istream& operator>>(istream& stream, Graph& G) {
     G.vertices[EL.V2[i]].degree++;
   }  
   
+  cerr << "Step 3" << endl;
+
   for(int i = 0; i < G.nb_vertices; i++)
     sort(G.vertices[i].edges, G.vertices[i].edges+G.vertices[i].degree);
 
@@ -214,6 +227,8 @@ istream& operator>>(istream& stream, Graph& G) {
     }
     G.vertices[i].degree = a+1;
   }
+
+  cerr << "Done for the stream" << endl;
 
   return stream;
 }

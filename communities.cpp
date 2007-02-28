@@ -403,6 +403,8 @@ Communities::Communities(Graph* graph, int random_walks_length, bool s, long m) 
 	add_neighbor(N);
       }
 
+  cerr << "OK";
+
   if(max_memory != -1) {
     memory_used += min_delta_sigma->memory();
     memory_used += 2*long(G->nb_vertices)*sizeof(Community);

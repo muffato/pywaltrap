@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
 	  break;
 	case 'm':
 	  max_memory = atol(argv[i]+2)*1024*1024;
-	  if (max_memory <= 0) help(argv[0]);
+	  //if (max_memory <= 0) help(argv[0]);
 	  break;
 	case 'i':
 	  if(argv[i][2] != 0) help(argv[0]);
