@@ -1,14 +1,24 @@
-CC=g++
-CFLAGS= -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O3 -s -static -momit-leaf-frame-pointer -minline-all-stringops -march=pentium4 -mfpmath=sse -mmmx -msse -msse2
+CC = g++
+PYTHON_INCLUDEDIR = /usr/include/python2.3
+CFLAGS = -Wall -O3 -fPIC
+LDFLAGS = -shared
+
+all : walktrap pywalktrap.so
 
 walktrap : walktrap.o communities.o graph.o heap.o
-	$(CC) -o $@ $^ $(CFLAGS)
+	$(CC) -o $@ $^
 
-all : walktrap
+pywalktrap.so : pywalktrap.o communities.o graph.o heap.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+py%.o : py%.cpp
+	$(CC) -c $< $(CFLAGS) -I$(PYTHON_INCLUDEDIR)
 
 %.o : %.cpp
-	$(CC) -c $< $(CFLAGS) 
-clean:
+	$(CC) -c $< $(CFLAGS)
+clean :
 	rm *.o
-	
+
+moreclean :
+	rm *.o pywalktrap.so walktrap
 

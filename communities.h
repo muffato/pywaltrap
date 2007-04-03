@@ -53,7 +53,7 @@ public:
   int* vertices;					    // the vertices corresponding to the stored probabilities, 0 if all the probabilities are stored
   float* P;						    // the probabilities
   
-  long memory();					    // the memory (in Bytes) used by the object
+  unsigned long memory();				    // the memory (in Bytes) used by the object
   double compute_distance(const Probabilities* P2) const;   // compute the squared distance r^2 between this probability vector and P2
   Probabilities(int community);				    // compute the probability vector of a community
   Probabilities(int community1, int community2);	    // merge the probability vectors of two communities in a new one
@@ -98,7 +98,7 @@ class Communities {
 private:
   bool silent;		// whether the progression is displayed
   int details;		// between 0 and 3, how much details are printed
-  long max_memory;	// size in Byte of maximal memory usage, -1 for no limit
+  unsigned long max_memory;	// size in Byte of maximal memory usage, -1 for no limit
   
   class Hierarchy {
     public:
@@ -118,7 +118,7 @@ private:
   
 public:
   
-  long memory_used;				    // in bytes
+  unsigned long memory_used;			    // in bytes
   Min_delta_sigma_heap* min_delta_sigma;    	    // the min delta_sigma of the community with a saved probability vector (for memory management)
   
   Graph* G;		    // the graph
@@ -133,7 +133,7 @@ public:
   int nb_communities;		// number of valid communities 
   int nb_active_communities;	// number of active communities
   
-  Communities(Graph* G, int random_walks_length = 3, bool silent = false, long max_memory = -1);    // Constructor
+  Communities(Graph* G, int random_walks_length = 3, bool silent = false, unsigned long max_memory = 0);    // Constructor
   ~Communities();					// Destructor
 
 
@@ -157,6 +157,7 @@ public:
   void print_partition(float alpha);
   void find_best_partition(float ratio, map<float,float>& M, int detail);
   
+  void* get_hierarchy();
 };
 
 

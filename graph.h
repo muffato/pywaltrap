@@ -57,7 +57,7 @@ public:
   float total_weight;		// total weight of the edges
   Vertex* vertices;		// array of the vertices
 
-  long memory();			// the total memory used in Bytes
+  unsigned long memory();	// the total memory used in Bytes
   Graph();			// create an empty graph
   ~Graph();			// destructor
   char** index;			// to keep the real name of the vertices

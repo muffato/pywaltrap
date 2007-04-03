@@ -35,6 +35,7 @@
 #include <iomanip>
 #include <fstream>
 
+
 using namespace std;
 
 void info() {
@@ -65,7 +66,7 @@ void help(char* prog_name) {
 int main(int argc, char** argv) {  
   int length = 4;
   int detail = 2;
-  long max_memory = -1;
+  unsigned long max_memory = 0;
   bool silent = false;
 
   int quality_function = 2;	// 1 = sigma, 2 = modularity, 3 = perf
