@@ -1,14 +1,14 @@
 CC = g++
-PYTHON_INCLUDEDIR = /usr/include/python2.3
-CFLAGS = -Wall -O3 -fPIC
-LDFLAGS = -shared
+PYTHON_INCLUDEDIR = /usr/include/python2.5
+CFLAGS = -Wall -O3 -freg-struct-return -march=i686
+LDFLAGS = -shared -fPIC
 
-all : walktrap pywalktrap.so
+all : walktrap _walktrap.so
 
 walktrap : walktrap.o communities.o graph.o heap.o
 	$(CC) -o $@ $^
 
-pywalktrap.so : pywalktrap.o communities.o graph.o heap.o
+_walktrap.so : pywalktrap.o communities.o graph.o heap.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 py%.o : py%.cpp
@@ -17,8 +17,8 @@ py%.o : py%.cpp
 %.o : %.cpp
 	$(CC) -c $< $(CFLAGS)
 clean :
-	rm *.o
+	rm *.o *.pyo
 
 moreclean :
-	rm *.o pywalktrap.so walktrap
+	rm *.o *.pyo _walktrap.so walktrap
 

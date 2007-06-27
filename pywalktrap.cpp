@@ -81,12 +81,10 @@ void loadFromPython(Graph& G, PyObject* nodes, PyObject* edges) {
 		G.vertices[x].total_weight += G.vertices[x].total_weight/double(G.vertices[x].degree);
 		G.vertices[x].degree += 1;
 		sort(G.vertices[x].edges, G.vertices[x].edges+G.vertices[x].degree);
-
 		PyDict_DelItem(edges, X);
 	}
 	G.total_weight /= 2.;
 	G.nb_edges /= 2;
-
 }
 
 
@@ -105,7 +103,7 @@ void* Communities::get_hierarchy() {
 		for(int j = 1; j <= sub_communities[c][0]; j++)
 			PyTuple_SET_ITEM(lstNodes, j-1, PyInt_FromLong(sub_communities[c][j]));
 
-		// Un tuple pour l'echelle alpha - les noeuds fusionnes - le nom du noeud cree
+		// Un tuple pour (l'echelle alpha - les noeuds fusionnes - le nom du noeud cree)
 		PyList_Append(lst, Py_BuildValue("(fOi)", alpha_min[c], lstNodes, c));
 	}
 	return lst;
@@ -135,7 +133,7 @@ static PyObject* pywalktrap_doWalktrap(PyObject *self, PyObject *args, PyObject 
 	PyObject* edges;
 	int length = 4;
 	int detail = 2;
-	int silent = 1;
+	int silent = 0;
 	unsigned long max_memory = 0;
 	int quality_function = 2;	// 1 = sigma, 2 = modularity, 3 = perf
 	static char* kwlist[] = {"nodes", "edges", "randomWalksLength", "verboseLevel", "showProgress", "memoryUseLimit", "qualityFunction", NULL};
@@ -185,7 +183,7 @@ static PyMethodDef PyWalktrapMethods[] = {
 };
 
 
-PyMODINIT_FUNC initpywalktrap(void)
+PyMODINIT_FUNC init_walktrap(void)
 {
-	(void) Py_InitModule3("pywalktrap", PyWalktrapMethods, infoModule);
+	(void) Py_InitModule3("_walktrap", PyWalktrapMethods, infoModule);
 }
