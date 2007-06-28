@@ -112,7 +112,7 @@ void* Communities::get_hierarchy() {
 
 char* infoModule =
 "WalkTrap v0.3 -- Finds community structure of networks using random walks.\n \
-Copyright (C) 2004 Pascal Pons.\n\n \
+Copyright (C) 2004 Pascal Pons & Matthieu Muffato 2007.\n\n \
 ";
 
 
@@ -133,14 +133,15 @@ static PyObject* pywalktrap_doWalktrap(PyObject *self, PyObject *args, PyObject 
 	PyObject* edges;
 	int length = 4;
 	int detail = 2;
-	int silent = 0;
+	int showProgress = 0;
 	unsigned long max_memory = 0;
 	int quality_function = 2;	// 1 = sigma, 2 = modularity, 3 = perf
 	static char* kwlist[] = {"nodes", "edges", "randomWalksLength", "verboseLevel", "showProgress", "memoryUseLimit", "qualityFunction", NULL};
 
 	vector<float> print_partition;
-	if (!PyArg_ParseTupleAndKeywords(args, keywds, "O!O!|iiiki", kwlist, &PyDict_Type, &nodes, &PyDict_Type, &edges, &length, &detail, &silent, &max_memory, &quality_function))
+	if (!PyArg_ParseTupleAndKeywords(args, keywds, "O!O!|iiiki", kwlist, &PyDict_Type, &nodes, &PyDict_Type, &edges, &length, &detail, &showProgress, &max_memory, &quality_function))
 		return NULL;
+	int silent = !showProgress;
 
 	time_t begin = clock();
 	Graph* G = new Graph;
