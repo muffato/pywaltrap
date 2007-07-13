@@ -25,10 +25,20 @@ import utils.myTools
 #
 class WalktrapLauncher:
 
-	def __init__(self):
+	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0, qualityFunction=2):
 		self.edges = utils.myTools.defaultdict(dict)
+		self.randomWalksLength = randomWalksLength
+		self.verboseLevel = verboseLevel
+		self.showProgress = showProgress
+		self.memoryUseLimit = memoryUseLimit
+		self.qualityFunction = qualityFunction
 
 	def addEdge(self, x, y, weight):
+
+		weight = float(weight)
+		if weight <= 0:
+			return
+
 		try:
 			x = int(x)
 		except ValueError:
@@ -37,7 +47,7 @@ class WalktrapLauncher:
 			y = int(y)
 		except ValueError:
 			pass
-		weight = float(weight)
+
 		self.edges[x][y] = weight
 		self.edges[y][x] = weight
 
@@ -48,9 +58,7 @@ class WalktrapLauncher:
 
 	def updateFromFunc(self, items, func):
 		for (x1,x2) in utils.myTools.myMatrixIterator(items, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
-			score = func(x1, x2)
-			if score > 0:
-				self.addEdge(x1, x2, score)
+			self.addEdge(x1, x2, func(x1, x2))
 
 	def updateFromDict(self, d, items = None):
 		for x1 in d:
@@ -62,35 +70,42 @@ class WalktrapLauncher:
 				self.addEdge(x1, x2, v)
 
 
-	def doWalktrap(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0, qualityFunction=2):
+	def doWalktrap(self):
 
 		print >> sys.stderr, "Computing connected components ...",
 		# Les composantes connexes
 		combin = utils.myTools.myCombinator([])
-		for x in self.edges:
-			combin.addLink(list(set([x] + self.edges[x].keys())))
+		for (x,l) in self.edges.iteritems():
+			if x in l:
+				combin.addLink(l.keys())
+			else:
+				combin.addLink(l.keys() + [x])
 
 		self.res = []
 
+		n = len(self.edges)
+		print >> sys.stderr, "Launching walktrap ",
 		for nodes in combin:
+			if len(nodes) != len(set(nodes)):
+				print >> sys.stderr, "ERROR: BAD CONNECTED COMPONENT"
 			# Reindexation des noeuds
 			indNodes = {}
 			for (i,node) in enumerate(nodes):
 				indNodes[node] = i
 
 			# On lance le walktrap
-			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=randomWalksLength, verboseLevel=verboseLevel, showProgress=showProgress, memoryUseLimit=memoryUseLimit, qualityFunction=qualityFunction)
+			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=self.randomWalksLength, verboseLevel=self.verboseLevel, showProgress=self.showProgress, memoryUseLimit=self.memoryUseLimit, qualityFunction=self.qualityFunction)
 
 			# On doit revenir aux noms de noeuds originels
 			def translate(x):
 				if x < len(nodes):
 					return nodes[x]
 				else:
-					return x
-			dend = [(cut,tuple(translate(f) for f in fils),pere) for (cut,fils,pere) in dend]
+					return (x,)
+			dend = [(cut,tuple(translate(f) for f in fils),translate(pere)) for (cut,fils,pere) in dend]
 			self.res.append( (nodes, relevantCuts, dend, WalktrapDendogram(dend, nodes)) )
-			print >> sys.stderr, "*"
-		print >> sys.stderr, "OK"
+			sys.stderr.write('.')
+		print >> sys.stderr, " OK"
 
 
 #
@@ -98,13 +113,14 @@ class WalktrapLauncher:
 #
 class WalktrapDirectLauncher:
 
-	def __init__(self, randomWalksLength=5, showProgress=False, memoryUseLimit=0):
+	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0, qualityFunction=2):
 		self.edges = {}
 		s = '/users/ldog/muffato/work/scripts/utils/walktrap/walktrap -t%d -d2 -m%d' % (randomWalksLength, memoryUseLimit)
-		if not showProgress:
-			s += ' -s'
-		(self.stdin,self.stdout,stderr) = os.popen3(s)
-		stderr.close()
+		if showProgress:
+			(self.stdin,self.stdout) = os.popen2(s)
+		else:
+			(self.stdin,self.stdout,stderr) = os.popen3(s + " -s")
+			stderr.close()
 		self.nodes = set()
 
 	def addEdge(self, x, y, weight):
@@ -122,36 +138,26 @@ class WalktrapDirectLauncher:
 	def updateFromFunc(self, items, func):
 		for (x1,x2) in utils.myTools.myMatrixIterator(items, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 			score = func(x1, x2)
+			#self.addEdge(x1, x2, score)
 			if score > 0:
-				addEdge(x1, x2, score)
+				self.addEdge(x1, x2, score)
 
 	def updateFromDict(self, d):
 		for x1 in d:
 			for (x2,v) in self.edges[x1].iteritems():
-				addEdge(x1, x2, v)
+				self.addEdge(x1, x2, v)
 
 	def doWalktrap(self):
 
 		self.stdin.close()
 		(relevantCuts,dend) = loadWalktrapOutput(self.stdout)
-		self.res = (self.nodes, relevantCuts, dend, WalktrapDendogram(dend, self.nodes))
+		self.res = [(self.nodes, relevantCuts, dend, WalktrapDendogram(dend, self.nodes))]
 
 
 #
 # Chargement d'un fichier de resultat de walktrap
 #
 def loadWalktrapOutput(f):
-
-	# Renvoie l'ensemble des fils d'un noeud, recursivement
-	def getAllChildren(father):
-		alreadySeen.add(father)
-		if father in lstFils:
-			res = []
-			for child in lstFils[father]:
-				res.extend( getAllChildren(child) )
-			return res
-		else:
-			return [father]
 
 	# On charge les fusions
 	allMerges = []
@@ -199,26 +205,23 @@ class WalktrapDendogram:
 	# Renvoie (la liste des clusters, les noeuds en dehors des clusters)
 	def cut(self, scale):
 
-		# Renvoie l'ensemble des fils d'un noeud, recursivement
-		def getAllChildren(father):
-			if father in self.lstFils:
-				fathersAlreadySeen.add(father)
-				res = []
-				for child in self.lstFils[father]:
-					res.extend( getAllChildren(child) )
-				return res
-			else:
-				nodesNotSeen.discard(father)
-				return [father]
-
-
 		# On extrait les communautes correspondantes
 		lstClusters = []
 		fathersAlreadySeen = set()
 		nodesNotSeen = set(self.lstAll)
 		for (s,_,pere) in self.allMerges:
 			if (s < scale) and (pere not in fathersAlreadySeen):
-				lstClusters.append( getAllChildren(pere) )
+				cluster = []
+				todo = [pere]
+				while len(todo) > 0:
+					father = todo.pop()
+					if father in self.lstFils:
+						fathersAlreadySeen.add(father)
+						todo.extend(self.lstFils[father])
+					else:
+						nodesNotSeen.discard(father)
+						cluster.append(father)
+				lstClusters.append( cluster )
 		return (lstClusters, list(nodesNotSeen))
 
 
