@@ -25,13 +25,12 @@ import utils.myTools
 #
 class WalktrapLauncher:
 
-	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0, qualityFunction=2):
+	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0):
 		self.edges = utils.myTools.defaultdict(dict)
 		self.randomWalksLength = randomWalksLength
 		self.verboseLevel = verboseLevel
 		self.showProgress = showProgress
 		self.memoryUseLimit = memoryUseLimit
-		self.qualityFunction = qualityFunction
 
 	def addEdge(self, x, y, weight):
 
@@ -57,7 +56,7 @@ class WalktrapLauncher:
 			self.addEdge(c[0], c[1], c[2])
 
 	def updateFromFunc(self, items, func):
-		for (x1,x2) in utils.myTools.myMatrixIterator(items, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		for (x1,x2) in utils.myTools.myIterator.tupleOnStrictUpperList(items):
 			self.addEdge(x1, x2, func(x1, x2))
 
 	def updateFromDict(self, d, items = None):
@@ -76,10 +75,7 @@ class WalktrapLauncher:
 		# Les composantes connexes
 		combin = utils.myTools.myCombinator([])
 		for (x,l) in self.edges.iteritems():
-			if x in l:
-				combin.addLink(l.keys())
-			else:
-				combin.addLink(l.keys() + [x])
+			combin.addLink(l.keys() + [x])
 
 		self.res = []
 
@@ -94,7 +90,7 @@ class WalktrapLauncher:
 				indNodes[node] = i
 
 			# On lance le walktrap
-			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=self.randomWalksLength, verboseLevel=self.verboseLevel, showProgress=self.showProgress, memoryUseLimit=self.memoryUseLimit, qualityFunction=self.qualityFunction)
+			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=self.randomWalksLength, verboseLevel=self.verboseLevel, showProgress=self.showProgress, memoryUseLimit=self.memoryUseLimit)
 
 			# On doit revenir aux noms de noeuds originels
 			def translate(x):
@@ -113,7 +109,7 @@ class WalktrapLauncher:
 #
 class WalktrapDirectLauncher:
 
-	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0, qualityFunction=2):
+	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0):
 		self.edges = {}
 		s = '/users/ldog/muffato/work/scripts/utils/walktrap/walktrap -t%d -d2 -m%d' % (randomWalksLength, memoryUseLimit)
 		if showProgress:
@@ -136,7 +132,7 @@ class WalktrapDirectLauncher:
 			print >> self.stdin, l,
 
 	def updateFromFunc(self, items, func):
-		for (x1,x2) in utils.myTools.myMatrixIterator(items, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		for (x1,x2) in utils.myTools.myIterator.tupleOnStrictUpperList(items):
 			score = func(x1, x2)
 			#self.addEdge(x1, x2, score)
 			if score > 0:
