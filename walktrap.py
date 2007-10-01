@@ -73,7 +73,7 @@ class WalktrapLauncher:
 
 		print >> sys.stderr, "Computing connected components ...",
 		# Les composantes connexes
-		combin = utils.myTools.myCombinator([])
+		combin = utils.myTools.myCombinator()
 		for (x,l) in self.edges.iteritems():
 			combin.addLink(l.keys() + [x])
 
@@ -83,6 +83,7 @@ class WalktrapLauncher:
 		print >> sys.stderr, "Launching walktrap ",
 		for nodes in combin:
 			if len(nodes) != len(set(nodes)):
+				# Cette erreur se declenche si il y a une boucle d'un noeud sur lui-meme ?
 				print >> sys.stderr, "ERROR: BAD CONNECTED COMPONENT"
 			# Reindexation des noeuds
 			indNodes = {}
