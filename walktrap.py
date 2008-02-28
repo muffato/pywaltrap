@@ -16,13 +16,14 @@
 import os
 import sys
 import _walktrap
+import utils.myMaths
 import utils.myTools
 
 
-#
-# Lancer un walktrap en bufferisant le graphe
-# Permet de detecter les composantes connexes
-#
+###############################################
+# Lancer un walktrap en bufferisant le graphe #
+# Permet de detecter les composantes connexes #
+###############################################
 class WalktrapLauncher:
 
 	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0):
@@ -32,6 +33,8 @@ class WalktrapLauncher:
 		self.showProgress = showProgress
 		self.memoryUseLimit = memoryUseLimit
 
+	# Ajout d'une arete
+	####################
 	def addEdge(self, x, y, weight):
 
 		weight = float(weight)
@@ -50,15 +53,21 @@ class WalktrapLauncher:
 		self.edges[x][y] = weight
 		self.edges[y][x] = weight
 
+	# Ajout automatique depuis un fichier
+	######################################
 	def updateFromFile(self, f):
 		for l in f:
 			c = l.split()
 			self.addEdge(c[0], c[1], c[2])
 
+	# Ajout automatique depuis une fonction
+	########################################
 	def updateFromFunc(self, items, func):
 		for (x1,x2) in utils.myTools.myIterator.tupleOnStrictUpperList(items):
 			self.addEdge(x1, x2, func(x1, x2))
 
+	# Ajout automatique depuis des dictionnaires existants
+	#######################################################
 	def updateFromDict(self, d, items = None):
 		for x1 in d:
 			if (items != None) and (x1 not in items):
@@ -69,6 +78,8 @@ class WalktrapLauncher:
 				self.addEdge(x1, x2, v)
 
 
+	# Lancement du walktrap
+	########################
 	def doWalktrap(self):
 
 		print >> sys.stderr, "Computing connected components ...",
@@ -105,9 +116,9 @@ class WalktrapLauncher:
 		print >> sys.stderr, " OK"
 
 
-#
-# Lancer un walktrap lorsqu'on sait qu'il n'y a qu'une seule composante connexe
-#
+#################################################################################
+# Lancer un walktrap lorsqu'on sait qu'il n'y a qu'une seule composante connexe #
+#################################################################################
 class WalktrapDirectLauncher:
 
 	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0):
@@ -151,9 +162,9 @@ class WalktrapDirectLauncher:
 		self.res = [(self.nodes, relevantCuts, dend, WalktrapDendogram(dend, self.nodes))]
 
 
-#
-# Chargement d'un fichier de resultat de walktrap
-#
+###################################################
+# Chargement d'un fichier de resultat de walktrap #
+###################################################
 def loadWalktrapOutput(f):
 
 	# On charge les fusions
@@ -183,9 +194,9 @@ def loadWalktrapOutput(f):
 	return (lstCoup, allMerges)
 
 
-#
-# Le dendogramme resultat, que l'on peut couper a un niveau pour recuperer les classes
-#
+########################################################################################
+# Le dendogramme resultat, que l'on peut couper a un niveau pour recuperer les classes #
+########################################################################################
 class WalktrapDendogram:
 
 	def __init__(self, lstMerges, lstNodes):
@@ -221,4 +232,36 @@ class WalktrapDendogram:
 				lstClusters.append( cluster )
 		return (lstClusters, list(nodesNotSeen))
 
+
+####################################################
+# Demande a l'utilisateur quelle partition choisir #
+####################################################
+def askPartitionChoice(dend, cuts):
+
+	def mystr( (alpha,relevance,(clusters,lonely)) ):
+		return "alpha=%f relevance=%f clusters=%d size=%d lonely=%d sizes={%s}" % \
+			(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely),utils.myMaths.myStats([len(c) for c in clusters]))
+
+	res = [(alpha,relevance,dend.cut(alpha)) for (alpha,relevance) in cuts]
+	# Le choix par defaut
+	if len(res) == 1:
+		print "1 seule possibilite"
+		x = 0
+	else:
+		# Si on peut, on propose a l'utilisateur de choisir
+		for x in res:
+			print >> sys.stderr, "> " + mystr(x)
+		if utils.myTools.stdinInput:
+			print >> sys.stderr, "Aucune entree utilisateur"
+			x = 0
+		else:
+			while True:
+				try:
+					print >> sys.stderr, "Choix ? ",
+					x = int(raw_input())
+					break
+				except ValueError:
+					pass
+	print >> sys.stderr, "Choix de " + mystr(res[x])
+	return res[x]
 
