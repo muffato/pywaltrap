@@ -99,7 +99,12 @@ class WalktrapLauncher:
 			# Reindexation des noeuds
 			indNodes = {}
 			for (i,node) in enumerate(nodes):
+				#if node in self.edges:
+				#	for j in xrange(i):
+				#		if nodes[j] in self.edges[node]:
+				#			print j, i, self.edges[node][nodes[j]]
 				indNodes[node] = i
+			#print "*****"
 
 			# On lance le walktrap
 			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=self.randomWalksLength, verboseLevel=self.verboseLevel, showProgress=self.showProgress, memoryUseLimit=self.memoryUseLimit)
