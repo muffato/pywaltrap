@@ -250,7 +250,7 @@ def askPartitionChoice(dend, cuts):
 	res = [(alpha,relevance,dend.cut(alpha)) for (alpha,relevance) in cuts]
 	# Le choix par defaut
 	if len(res) == 1:
-		print "1 seule possibilite"
+		print >> sys.stderr, "1 seule possibilite"
 		x = 0
 	else:
 		# Si on peut, on propose a l'utilisateur de choisir
@@ -267,6 +267,9 @@ def askPartitionChoice(dend, cuts):
 					break
 				except ValueError:
 					pass
+				except EOFError:
+					x = 0
+					break
 	print >> sys.stderr, "Choix de " + mystr(res[x])
 	return res[x]
 
