@@ -104,7 +104,6 @@ class WalktrapLauncher:
 				#		if nodes[j] in self.edges[node]:
 				#			print j, i, self.edges[node][nodes[j]]
 				indNodes[node] = i
-			#print "*****"
 
 			# On lance le walktrap
 			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=self.randomWalksLength, verboseLevel=self.verboseLevel, showProgress=self.showProgress, memoryUseLimit=self.memoryUseLimit)
@@ -151,7 +150,6 @@ class WalktrapDirectLauncher:
 	def updateFromFunc(self, items, func):
 		for (x1,x2) in utils.myTools.myIterator.tupleOnStrictUpperList(items):
 			score = func(x1, x2)
-			#self.addEdge(x1, x2, score)
 			if score > 0:
 				self.addEdge(x1, x2, score)
 
