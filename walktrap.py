@@ -137,7 +137,7 @@ def askPartitionChoice(dend, cuts):
 
 	def mystr( (alpha,relevance,(clusters,lonely)) ):
 		return "alpha=%f relevance=%f clusters=%d size=%d lonely=%d sizes={%s}" % \
-			(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely),utils.myMaths.myStats([len(c) for c in clusters]))
+			(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely),utils.myMaths.myStats.txtSummary([len(c) for c in clusters]))
 
 	res = [(alpha,relevance,dend.cut(alpha)) for (alpha,relevance) in cuts]
 	# Le choix par defaut
