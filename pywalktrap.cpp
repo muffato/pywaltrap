@@ -133,7 +133,7 @@ static PyObject* pywalktrap_doWalktrap(PyObject *self, PyObject *args, PyObject 
 	PyObject* nodes;
 	PyObject* edges;
 	int length = 4;
-	int detail = 2;
+	int detail = 0;
 	int showProgress = 0;
 	unsigned long max_memory = 0;
 	int quality_function = 2;	// 1 = sigma, 2 = modularity, 3 = perf

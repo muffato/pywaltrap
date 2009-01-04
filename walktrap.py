@@ -14,15 +14,16 @@
 
 
 import sys
-import _walktrap
-import utils.myTools
 
 
 # Lancer un walktrap a partir d'un graphe
 # Permet de detecter les composantes connexes
 ###############################################
 
-def doWalktrap(edges, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0):
+def doWalktrap(edges, **kwargs):
+
+	import utils.myTools
+	import _walktrap
 
 	print >> sys.stderr, "Computing connected components ...",
 	# Les composantes connexes
@@ -41,7 +42,7 @@ def doWalktrap(edges, randomWalksLength=5, verboseLevel=0, showProgress=False, m
 			indNodes[node] = i
 
 		# On lance le walktrap
-		(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, edges, randomWalksLength=randomWalksLength, verboseLevel=verboseLevel, showProgress=showProgress, memoryUseLimit=memoryUseLimit)
+		(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, edges, **kwargs)
 
 		# On doit revenir aux noms de noeuds originels
 		def translate(x):
