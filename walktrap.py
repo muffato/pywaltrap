@@ -28,12 +28,24 @@ def doWalktrap(edges, **kwargs):
 	print >> sys.stderr, "Computing connected components ...",
 	# Les composantes connexes
 	combin = utils.myTools.myCombinator()
+	superdelete = []
+
 	for (x,l) in edges.iteritems():
+		delete = [y for y in l if l[y] <= 0.]
+		for y in delete:
+			del l[y]
 		l.pop(x, None)
-		combin.addLink(l.keys() + [x])
+		if len(l) > 0:
+			combin.addLink(l.keys() + [x])
+		else:
+			superdelete.append(x)
+
+	res = []
+	for x in superdelete:
+		del edges[x]
+		res.append( ([x], [], None, None) )
 
 	print >> sys.stderr, "Launching walktrap ",
-	res = []
 	n = len(edges)
 	for nodes in combin:
 		# Reindexation des noeuds
@@ -56,6 +68,52 @@ def doWalktrap(edges, **kwargs):
 	print >> sys.stderr, " OK"
 
 	return res
+
+
+# Lance un walktrap sur la liste de blocs l, en utilisant func pour le calcul du score
+#######################################################################################
+def clusterWithNb(l, funcScore, funcBestChoice, putLonelyinNone, **kwargs):
+
+	(edges,none) = funcScore(l)
+	print >> sys.stderr, "input", len(edges), len(none), len(l)
+
+	#print >> sys.stderr, edges
+	s = len(edges)
+	res = doWalktrap(edges, **kwargs)
+
+	# Chaque composante connexe
+	chrOrder = []
+	for (nodes,cuts,_,dend) in res:
+		if len(cuts) == 0:
+			chrOrder.append(nodes)
+		else:
+			(alpha,score,(clust,lonely)) = funcBestChoice([(alpha,score,dend.cut(alpha)) for (alpha,score) in cuts])
+			assert sum(len(x) for x in clust) + len(lonely) == len(nodes)
+			chrOrder.extend(clust)
+			if putLonelyinNone:
+				none.update(lonely)
+			else:
+				chrOrder.append(lonely)
+
+	print >> sys.stderr, "output", len(edges), len(none), [len(x) for x in chrOrder]
+	assert len(l) == (len(none) + sum(len(x) for x in chrOrder)), (len(l), len(none), sum(len(x) for x in chrOrder), [len(x) for x in chrOrder])
+	return (chrOrder,none)
+
+
+# Applique succesivement plusieurs clusterWithNb sur chaque liste de blocs dans ll
+###################################################################################
+def applyMultipleClust(ll, lfuncScore, lfuncBestChoice, putLonelyinNone, **kwargs):
+	res = []
+	none = []
+	for l in ll:
+		for (funcScore, funcBestChoice) in zip(lfuncScore, lfuncBestChoice):
+			(l,n) = clusterWithNb(l, funcScore, funcBestChoice, putLonelyinNone, **kwargs)
+			none.extend(n)
+		res.extend(l)
+	assert sum(len(l) for l in ll) == (len(none) + sum(len(l) for l in res))
+	return (res,none)
+	return res + [[x] for x in none]
+
 
 
 ###################################################
@@ -161,6 +219,9 @@ def askPartitionChoice(dend, cuts):
 					break
 				except ValueError:
 					pass
+				except IOError:
+					x = 0
+					break
 				except EOFError:
 					x = 0
 					break

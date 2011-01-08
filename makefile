@@ -1,6 +1,6 @@
 CC = g++
 PYTHON_INCLUDEDIR = /usr/include/python2.5
-CFLAGS = -W -Wall -O3 -ftree-vectorize -fomit-frame-pointer -static
+CFLAGS = -W -Wall -O3 -static -fPIC
 LDFLAGS = -shared -fPIC
 
 all : walktrap _walktrap.so

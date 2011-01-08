@@ -51,13 +51,13 @@ void loadFromPython(Graph& G, PyObject* nodes, PyObject* edges) {
 	G.total_weight = 0.;
 
 	PyObject *X, *indX;
-	int posX = 0;
+	Py_ssize_t posX = 0;
 
 	while (PyDict_Next(nodes, &posX, &X, &indX)) {
 		long x = PyInt_AS_LONG(indX);
 		PyObject* edgesFromX = PyDict_GetItem(edges, X);
 		PyObject *Y, *valEdge;
-		int posY = 0;
+		Py_ssize_t posY = 0;
 
 		G.vertices[x].degree = PyDict_Size(edgesFromX);
 		G.vertices[x].edges = new Edge[G.vertices[x].degree + 1];
