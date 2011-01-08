@@ -1,27 +1,37 @@
-       #=======================================#
-       #  WalkTrap v0.2                        #
-       #  Copyright (C) 2004-2005 Pascal Pons  #
-       #=======================================#
+# pywalktrap
 
+## Introduction
 
-1) DESCRIPTION
-   ===========
+This is some code I have developed during my PhD thesis to interact with
+the community detection program
+[WalkTrap](https://www-complexnetworks.lip6.fr/~latapy/PP/walktrap.html)
+from Python.
 
-WalkTrap is a C++ program that finds community structure of a network.
-It is based on the fact that a random walker tends to be trapped in dense
-part of a network corresponding to communities.
+It is there for historical purposes, as a legacy. It works and I have used
+it extensively, but I would not advice using it. Nowadays, you can find
+more complete graph libraries such as [igraph](https://igraph.org/python/),
+which includes WalkTrap.
 
+Given there are some minor modifications to WalkTrap itself, I have bumped
+the version number to 0.3.
 
-2) AUTHOR & COPYRIGHT
-   ==================
+## Warning
 
-This program is copyright (C) 2004-2005 by Pascal Pons:
-    Email:	pons@liafa.jussieu.fr
-    Web page:	http://www.liafa.jussieu.fr/~pons/
+The repository has been reconstructed from regular backups I had, but this
+means there are no useful commit messages. Note that this repository
+includes some modifications made by [Manu Cornet](https://ma.nu/) during
+his time in the Dyogen lab.
 
-Collaborator: Matthieu Latapy
-    Email:	latapy@liafa.jussieu.fr
-    Web page:	http://www.liafa.jussieu.fr/~latapy/
+The code uses various utility methods packaged in [LibsDyogen](https://github.com/DyogenIBENS/LibsDyogen/).
+It has been developed and tested against Python 2.5 and 2.6. It probably works
+with the version 2.7 as well, but you will need to change
+`PYTHON_INCLUDEDIR` in the makefile.
+
+## License and copyright
+
+This program is joint copyright:
+- (C) 2004-2005 by Pascal Pons
+- (C) 2007-2010 by IBENS/Dyogen and Matthieu Muffato
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -37,6 +47,29 @@ You should have received a copy of the GNU General Public License
 along with this program (gpl.txt); if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+## Further information
+
+> Below is information from the original README
+
+```
+1) DESCRIPTION
+   ===========
+
+WalkTrap is a C++ program that finds community structure of a network.
+It is based on the fact that a random walker tends to be trapped in dense
+part of a network corresponding to communities.
+
+
+2) AUTHOR & COPYRIGHT
+   ==================
+
+Initial author: Pascal Pons
+    Email:	pons@liafa.jussieu.fr
+    Web page:	http://www.liafa.jussieu.fr/~pons/
+
+Collaborator: Matthieu Latapy
+    Email:	latapy@liafa.jussieu.fr
+    Web page:	http://www.liafa.jussieu.fr/~latapy/
 
 3) USAGE
    =====
@@ -160,6 +193,10 @@ You can also send me any comment or suggestion about the program.
 6) HISTORY
    =======
 
+v0.3 (ca. 2007-2008):
+new features :
+    - added Python interface
+
 v0.2 (June 2005)
 new features :
     - support of weighted networks (input format has been modified)
@@ -171,5 +208,4 @@ new features :
 
 v0.1 (November 2004)
 first public version of Walktrap.
-
-					June 7th, 2005. Pascal Pons.
+```

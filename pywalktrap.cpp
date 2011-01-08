@@ -1,7 +1,7 @@
 // File: walktrap.cpp
 //-----------------------------------------------------------------------------
-// Walktrap v0.2 -- Finds community structure of networks using random walks
-// Copyright (C) 2004-2005 Pascal Pons
+// Walktrap v0.3 -- Finds community structure of networks using random walks
+// Copyright (C) 2007-2010 IBENS/Dyogen and Matthieu Muffato
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,11 +17,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //-----------------------------------------------------------------------------
-// Author   : Pascal Pons 
-// Email    : pons@liafa.jussieu.fr
-// Web page : http://www.liafa.jussieu.fr/~pons/
+// Author   : Matthieu Muffato 
 // Location : Paris, France
-// Time	    : June 2005
 //-----------------------------------------------------------------------------
 // see readme.txt for more details
 
@@ -113,7 +110,8 @@ void* Communities::get_hierarchy() {
 
 const char* infoModule =
 "WalkTrap v0.3 -- Finds community structure of networks using random walks.\n \
-Copyright (C) 2004 Pascal Pons & Matthieu Muffato 2007.\n\n \
+Copyright (C) 2004 Pascal Pons.\n \
+Copyright (C) 2007-2010 IBENS/Dyogen and Matthieu Muffato.\n\n \
 ";
 
 

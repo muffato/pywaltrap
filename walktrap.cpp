@@ -1,7 +1,8 @@
 // File: walktrap.cpp
 //-----------------------------------------------------------------------------
-// Walktrap v0.2 -- Finds community structure of networks using random walks
+// Walktrap v0.3 -- Finds community structure of networks using random walks
 // Copyright (C) 2004-2005 Pascal Pons
+// Copyright (C) 2007-2010 IBENS/Dyogen and Matthieu Muffato
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,7 +41,8 @@ using namespace std;
 
 void info() {
   cerr << "WalkTrap v0.3 -- Finds community structure of networks using random walks." << endl;
-  cerr << "Copyright (C) 2004 Pascal Pons." << endl << endl;
+  cerr << "Copyright (C) 2004 Pascal Pons." << endl;
+  cerr << "Copyright (C) 2007-2010 IBENS/Dyogen and Matthieu Muffato." << endl << endl;
 }
 
 void help(char* prog_name) {

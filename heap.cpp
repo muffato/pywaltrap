@@ -1,7 +1,8 @@
 // File: heap.cpp
 //-----------------------------------------------------------------------------
-// Walktrap v0.2 -- Finds community structure of networks using random walks
+// Walktrap v0.3 -- Finds community structure of networks using random walks
 // Copyright (C) 2004-2005 Pascal Pons
+// Copyright (C) 2007-2010 IBENS/Dyogen and Matthieu Muffato
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
